@@ -1,62 +1,37 @@
-mtype = {UserA, UserB, ticket, success, failed}
-chan book = [1] of {mtype}
-chan chan_a = [0] of {mtype}
-chan chan_b = [0] of {mtype}
-int amount =1;
-active  proctype User_A()
-{
-	//printf("%d",amount);
-	if :: amount != 0 ->
-			book!UserA;
-			if :: chan_a?success ->		//get the ticket
-					printf("A gets the ticket!\n");
-				:: chan_a?failed ->		//failed get the ticket
-					printf("A is Requested Failed!\n");
-			fi
-	:: else -> 
-		printf("Not available!\n");
-	fi
-}
-
-active proctype User_B()
+mtype ={user,success,failed}
+chan resever = [1] of {mtype}
+chan book = [0] of {mtype}
+int seat = 5
+active [6] proctype User()
 {
 	if
-	::	amount != 0 ->	
-		book!UserB;
-		if
-		:: chan_b?success ->
-			printf("B gets the ticket!\n");
-		:: chan_b?failed ->
-			printf("B is Requested Failed!\n");
+	:: seat != 0 ->
+		resever!user;
+		if	:: book?success ->
+				printf("%d gets the ticket!\n",_pid);
+			:: book?failed ->
+				printf("%d is requested failed!\n",_pid);
 		fi
-	:: else ->
-		printf("Not available!\n");
+	:: else -> 
+		printf("%d is not available!\n",_pid);
 	fi
 }
-
 active proctype system()
 {
-	bool flag =false;
+	bool flag = false;
 	do :: flag == false ->
-	if	:: book?UserA ->	//received the message from A
-		if 
-		:: amount > 0 ->
-			amount--;
-			chan_a!success;
-		:: else ->
-			chan_a!failed;
-		fi;
-		:: book?UserB ->	//received the message from B
-		if
-		::	amount > 0 ->
-			amount--;
-			chan_b!success;
-		:: else ->
-			chan_b!failed;
-		fi
-		:: timeout ->		//break the process
+		if	
+		:: resever?user ->
+			if
+			::	seat > 0 ->
+				seat--;
+				book!success;
+			::	else ->
+				book!failed;
+			fi;
+		::	timeout ->
 			flag = true;
-	fi;
-	:: else -> break
+		fi;
+	::	else -> break;
 	od;
 }
